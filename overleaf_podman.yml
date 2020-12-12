@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: overleaf
+spec:
+  restartPolicy: Always
+  volumes:
+    - name: sharelatex_data
+      hostPath:
+        path: /var/tex/sharelatex_data
+    - name: mongo_config
+      hostPath:
+        path: /var/tex/configdb
+    - name: mongo_db
+      hostPath:
+        path: /var/tex/db
+    - name: redis_data
+      hostPath:
+        path: /var/tex/redis_data
+
+  containers:
+    - name: overleaf-db
+      image: docker.io/mongo:4.0
+      volumeMounts:
+        - name: mongo_config
+          mountPath: /data/configdb
+        - name: mongo_db
+          mountPath: /data/db
+      resources:
+        requests:
+          memory: "768Mi"
+
+    - name: overleaf-redis
+      image: redis:5
+      workingDir: /data
+      volumeMounts:
+        - name: redis_data
+          mountPath: /data
+
+    - name: sharelatex
+      image: sharelatex/sharelatex:with-texlive-full
+      env:
+        - name: SHARELATEX_APP_NAME
+          value: Overleaf Community Edition
+        - name: SHARELATEX_MONGO_URL
+          value: mongodb://127.0.0.1/sharelatex
+        - name: SHARELATEX_REDIS_HOST
+          value: 127.0.0.1
+        - name: REDIS_HOST
+          value: 127.0.0.1
+        - name: ENABLED_LINKED_FILE_TYPES
+          value: 'url,project_file'
+        - name: ENABLE_CONVERSIONS
+          value: true
+        - name: EMAIL_CONFIRMATION_DISABLED
+          value: true
+        - name: TEXMFVAR
+          value: /var/lib/sharelatex/tmp/texmf-var
+        - name: SHARELATEX_SITE_LANGUAGE
+          value: ja
+        - name: SHARELATEX_EMAIL_SMTP_SECURE
+          value: true
+        - name: SHARELATEX_EMAIL_FROM_ADDRESS
+          value: #Eメールアドレス
+        - name: SHARELATEX_EMAIL_SMTP_HOST
+          value: #SMTP
+        - name: SHARELATEX_EMAIL_SMTP_PORT
+          value: 587
+        - name: SHARELATEX_EMAIL_SMTP_USER
+          value: #ユーザー名
+        - name: SHARELATEX_EMAIL_SMTP_PASS
+          value: #pass
+        - name: SHARELATEX_EMAIL_SMTP_TLS_REJECT_UNAUTH
+          value: true
+        - name: SHARELATEX_EMAIL_SMTP_IGNORE_TLS
+          value: false
+        - name: SHARELATEX_SITE_URL
+          value: #URL
+        - name: SHARELATEX_NAV_TITLE
+          value: #タイトル
+        - name: SHARELATEX_HEADER_IMAGE_URL
+          value: #ヘッダー画像
+        - name: SHARELATEX_ADMIN_EMAIL
+          value: #管理者アドレス
+
+      resources:
+        memory: "768Mi"
+      ports:
+        - containerPort: 80
+          hostPort: 8888
+          protocol: TCP
+      volumeMounts:
+        - name: sharelatex_data
+          mountPath: /var/lib/sharelatex
